@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hermes Agent - Original Token Proof</title>
+    <meta name="description" content="On-chain proof that J5DnHXXmKsXmCAeSvPRc5qR64ruYKcZHKwZijv9HnZgK is the original Hermes Agent token on Solana.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050510;
+            --cyan: #32ffff;
+            --gold: #ffec3c;
+            --red: #ff4d4d;
+            --pink: #ff33cc;
+            --text: #d0d0d0;
+            --dim: #6688aa;
+            --font: 'Space Mono', 'DejaVu Sans Mono', monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { overflow-x: hidden; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        /* Scanline overlay */
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0,0,0,0.06) 0px,
+                rgba(0,0,0,0.06) 1px,
+                transparent 1px,
+                transparent 3px
+            );
+        }
+
+        /* ── PRICE BAR ── */
+        .price-bar-section {
+            width: 100%;
+            background: linear-gradient(180deg, rgba(5,5,16,0.98) 0%, var(--bg) 100%);
+            padding: 24px 16px 16px;
+            border-bottom: 2px solid rgba(50,255,255,0.15);
+        }
+
+        .price-bar-inner {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .price-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 10px;
+        }
+
+        .price-label {
+            font-size: clamp(0.65rem, 1.8vw, 0.85rem);
+            color: var(--dim);
+            letter-spacing: 0.15em;
+            font-weight: 700;
+        }
+
+        .price-live {
+            font-size: clamp(1.4rem, 5vw, 2.4rem);
+            color: var(--cyan);
+            font-weight: 700;
+            text-shadow: 0 0 12px var(--cyan), 0 0 30px rgba(50,255,255,0.2);
+            animation: pulse-price 2s infinite alternate;
+        }
+
+        @keyframes pulse-price {
+            from { text-shadow: 0 0 8px var(--cyan), 0 0 20px rgba(50,255,255,0.15); }
+            to { text-shadow: 0 0 16px var(--cyan), 0 0 40px rgba(50,255,255,0.35); }
+        }
+
+        .price-track {
+            width: 100%;
+            height: 36px;
+            background: rgba(50,255,255,0.06);
+            border: 1px solid rgba(50,255,255,0.2);
+            position: relative;
+            margin-bottom: 6px;
+        }
+
+        .price-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--cyan), var(--gold));
+            position: relative;
+            transition: width 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+            min-width: 60px;
+            box-shadow: 0 0 15px rgba(50,255,255,0.4), inset 0 0 8px rgba(255,255,255,0.1);
+        }
+
+        .price-fill-label {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: clamp(0.55rem, 1.5vw, 0.75rem);
+            color: var(--bg);
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .price-markers {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .marker {
+            position: absolute;
+            top: 42px;
+            transform: translateX(-50%);
+            font-size: 0.6rem;
+            color: var(--dim);
+            letter-spacing: 0.05em;
+        }
+
+        .marker-goal {
+            color: var(--gold);
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-shadow: 0 0 8px var(--gold);
+        }
+
+        .price-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 18px;
+        }
+
+        .price-footer-label {
+            font-size: clamp(0.6rem, 1.5vw, 0.8rem);
+            color: var(--gold);
+            letter-spacing: 0.1em;
+            font-weight: 700;
+        }
+
+        .price-footer-pct {
+            font-size: clamp(0.6rem, 1.5vw, 0.8rem);
+            color: var(--dim);
+            letter-spacing: 0.08em;
+        }
+
+        /* ── VIDEO ── */
+        .video-section {
+            width: 100%;
+            background: #000;
+        }
+
+        .video-section video {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        /* ── THESIS CONTENT ── */
+        .thesis {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 50px 20px;
+        }
+
+        .thesis h1 {
+            font-size: clamp(1.8rem, 7vw, 3.5rem);
+            color: var(--cyan);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            text-shadow: 0 0 20px var(--cyan), 0 0 40px rgba(50,255,255,0.3);
+            margin-bottom: 20px;
+            animation: glitch 3s infinite;
+            line-height: 1.15;
+            text-align: center;
+        }
+
+        @keyframes glitch {
+            0%, 100% { transform: translate(0); }
+            1% { transform: translate(-2px, 1px); }
+            2% { transform: translate(2px, -1px); }
+            3% { transform: translate(0); }
+            40% { transform: translate(0); }
+            41% { transform: translate(1px, -2px); }
+            42% { transform: translate(-1px, 2px); }
+            43% { transform: translate(0); }
+        }
+
+        /* CA box — centered, flexible, never overflows */
+        .ca-box {
+            font-size: clamp(0.55rem, 2vw, 1.2rem);
+            color: var(--gold);
+            background: rgba(255,236,60,0.06);
+            border: 1px solid var(--gold);
+            padding: 10px 16px;
+            display: block;
+            max-width: 100%;
+            word-break: break-all;
+            letter-spacing: 0.03em;
+            margin: 0 auto 36px;
+            text-align: center;
+            animation: glow-gold 2s infinite alternate;
+            cursor: pointer;
+            user-select: all;
+        }
+
+        @keyframes glow-gold {
+            from { box-shadow: 0 0 4px var(--gold); }
+            to { box-shadow: 0 0 16px var(--gold), 0 0 30px rgba(255,236,60,0.15); }
+        }
+
+        /* Abstract */
+        .abstract {
+            font-size: clamp(0.95rem, 2.5vw, 1.15rem);
+            color: var(--dim);
+            border-left: 3px solid var(--cyan);
+            padding: 18px 20px;
+            margin-bottom: 50px;
+            line-height: 1.8;
+        }
+
+        .abstract strong { color: var(--gold); }
+        .abstract code {
+            word-break: break-all;
+            color: var(--gold);
+            font-size: 0.9em;
+        }
+
+        /* Sections */
+        .section {
+            margin-bottom: 55px;
+        }
+
+        .section h2 {
+            font-size: clamp(1.3rem, 5vw, 2.2rem);
+            color: var(--cyan);
+            text-transform: uppercase;
+            border-bottom: 2px solid var(--cyan);
+            padding-bottom: 10px;
+            margin-bottom: 22px;
+            letter-spacing: 0.05em;
+            line-height: 1.2;
+        }
+
+        .section h3 {
+            font-size: clamp(1.05rem, 3vw, 1.5rem);
+            color: var(--gold);
+            margin: 28px 0 12px;
+            text-transform: uppercase;
+        }
+
+        .section p {
+            margin-bottom: 16px;
+            font-size: clamp(0.92rem, 2vw, 1.05rem);
+            line-height: 1.8;
+        }
+
+        .section strong { color: var(--gold); }
+        .section em { color: var(--pink); font-style: normal; }
+        .section code {
+            word-break: break-all;
+            color: var(--gold);
+            font-size: 0.88em;
+        }
+
+        /* Timeline */
+        .timeline-box {
+            border-left: 4px solid var(--gold);
+            padding: 18px 20px;
+            margin: 20px 0;
+            background: rgba(255,236,60,0.03);
+        }
+
+        .tl-entry {
+            margin-bottom: 12px;
+            padding-left: 14px;
+            position: relative;
+        }
+
+        .tl-entry::before {
+            content: "►";
+            color: var(--gold);
+            position: absolute;
+            left: -4px;
+            font-size: 0.65rem;
+            top: 5px;
+        }
+
+        .tl-entry .date { color: var(--gold); font-weight: 700; }
+        .tl-entry .ev { color: var(--text); }
+
+        /* Token list */
+        .token-list { margin: 18px 0; }
+
+        .tk-header, .tk-row {
+            display: grid;
+            grid-template-columns: 28px 80px 1fr 70px;
+            gap: 8px;
+            padding: 8px 10px;
+            align-items: center;
+            font-size: clamp(0.72rem, 1.6vw, 0.88rem);
+        }
+
+        .tk-header {
+            border-bottom: 1px solid rgba(50,255,255,0.15);
+            color: var(--dim);
+            font-weight: 700;
+        }
+
+        .tk-row {
+            border-bottom: 1px solid rgba(50,255,255,0.06);
+        }
+
+        .tk-row.orig {
+            background: rgba(50,255,255,0.1);
+            border: 1px solid var(--cyan);
+        }
+
+        .tk-row.orig .tk-num,
+        .tk-row.orig .tk-date { color: var(--cyan); }
+
+        .tk-date { color: var(--gold); }
+        .tk-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .tk-fdv { color: var(--dim); text-align: right; }
+
+        /* Evidence boxes */
+        .evidence {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(50,255,255,0.2);
+            padding: 22px 18px;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .evidence::before {
+            content: attr(data-label);
+            position: absolute;
+            top: -10px;
+            left: 16px;
+            background: var(--bg);
+            color: var(--cyan);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            border: 1px solid var(--cyan);
+        }
+
+        .evidence p { margin-bottom: 12px; }
+        .evidence code { word-break: break-all; color: var(--gold); font-size: 0.88em; }
+
+        /* Logic box */
+        .logic-box {
+            background: rgba(255,51,204,0.06);
+            border: 2px solid var(--pink);
+            padding: 24px 20px;
+            margin: 24px 0;
+        }
+
+        .logic-box ol { padding-left: 22px; }
+        .logic-box li { margin-bottom: 12px; font-size: clamp(0.92rem, 2vw, 1.05rem); line-height: 1.7; }
+        .logic-box strong { color: var(--pink); }
+
+        /* Bulleted lists */
+        .section ul {
+            padding-left: 22px;
+            margin: 16px 0;
+        }
+
+        .section li {
+            margin-bottom: 10px;
+            font-size: clamp(0.92rem, 2vw, 1.05rem);
+            line-height: 1.7;
+        }
+
+        /* Wizard */
+        .wizard-wrap {
+            text-align: center;
+            margin: 36px 0;
+        }
+
+        .wizard-wrap img {
+            max-width: 260px;
+            width: 80%;
+            border: 2px solid var(--cyan);
+            filter: drop-shadow(0 0 12px var(--cyan)) saturate(1.3);
+            image-rendering: pixelated;
+        }
+
+        /* CTA */
+        .cta {
+            text-align: center;
+            padding: 50px 20px;
+            background: linear-gradient(135deg, rgba(50,255,255,0.08), rgba(255,77,77,0.08));
+            border: 2px solid var(--red);
+            margin: 50px 0;
+        }
+
+        .cta h2 {
+            color: var(--red);
+            font-size: clamp(1.6rem, 6vw, 3rem);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            animation: glitch 2s infinite;
+            line-height: 1.2;
+        }
+
+        .cta .ca-final {
+            color: var(--cyan);
+            font-size: clamp(0.6rem, 1.8vw, 1.1rem);
+            margin-top: 20px;
+            word-break: break-all;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            user-select: all;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 24px 16px;
+            color: var(--dim);
+            font-size: 0.75rem;
+            border-top: 1px solid rgba(50,255,255,0.1);
+            word-break: break-all;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(60px);
+            background: var(--cyan);
+            color: var(--bg);
+            padding: 10px 24px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            z-index: 10000;
+            pointer-events: none;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+        /* Corner decorations */
+        .corner { position: fixed; pointer-events: none; z-index: 100; width: 50px; height: 50px; }
+        .corner.tl { top: 10px; left: 10px; border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
+        .corner.br { bottom: 10px; right: 10px; border-bottom: 2px solid var(--red); border-right: 2px solid var(--red); }
+    </style>
+</head>
+<body>
+
+<div class="scanlines"></div>
+<div class="corner tl"></div>
+<div class="corner br"></div>
+<div id="toast" class="toast">CA copied!</div>
+
+<!-- PRICE BAR -->
+<div class="price-bar-section">
+    <div class="price-bar-inner">
+        <div class="price-header">
+            <span class="price-label">MARKET CAP</span>
+            <span class="price-live" id="price-value">$34,383</span>
+        </div>
+        <div class="price-track">
+            <div class="price-fill" id="price-fill">
+                <span class="price-fill-label">$34K</span>
+            </div>
+            <div class="price-markers">
+                <span class="marker" style="left:10%">$1M</span>
+                <span class="marker" style="left:25%">$2.5M</span>
+                <span class="marker" style="left:50%">$5M</span>
+                <span class="marker" style="left:75%">$7.5M</span>
+                <span class="marker marker-goal" style="left:100%">$10M</span>
+            </div>
+        </div>
+        <div class="price-footer">
+            <span class="price-footer-label">GOAL: $10,000,000</span>
+            <span class="price-footer-pct" id="price-pct">0.34%</span>
+        </div>
+    </div>
+</div>
+
+<!-- VIDEO REMOVED — too large for GitHub Pages. Price bar is the hero. -->
+
+<!-- THESIS -->
+<div class="thesis">
+
+    <h1>The Original Hermes Agent</h1>
+    <div class="ca-box" title="Click to copy">J5DnHXXmKsXmCAeSvPRc5qR64ruYKcZHKwZijv9HnZgK</div>
+
+    <div class="abstract">
+        As of May 2026, at least <strong>17 tokens</strong> claiming affiliation with Nous Research's Hermes Agent project have been deployed on Solana. Only <strong>one</strong> was created on the project's actual launch day. This document presents on-chain and off-chain evidence establishing <code>J5DnHXXmKsXmCAeSvPRc5qR64ruYKcZHKwZijv9HnZgK</code> as the original and only legitimate Hermes Agent token—and systematically debunks the claims of its imitators.
+    </div>
+
+    <!-- I -->
+    <div class="section">
+        <h2>I. The Product Timeline: What Actually Existed and When</h2>
+        <p>To evaluate any token's legitimacy, we must first establish what the Hermes Agent project is, and when it came into existence.</p>
+
+        <h3>The Hermes Model Lineage (LLMs, Not Agents)</h3>
+        <p>Nous Research has a well-documented history of releasing <strong>large language models</strong> under the Hermes brand:</p>
+
+        <div class="timeline-box">
+            <div class="tl-entry"><span class="date">July 2023</span> — <span class="ev">Hermes 1: Fine-tuned LLaMA 13B, top-ranked on multiple benchmarks</span></div>
+            <div class="tl-entry"><span class="date">Dec 2023 – Feb 2024</span> — <span class="ev">Hermes 2: Built on Yi-34B and Mistral-7B, with Pro variants adding function calling</span></div>
+            <div class="tl-entry"><span class="date">June 2024</span> — <span class="ev">Hermes 2 Pro / 2 Theta: Llama-3-based, 70B parameters, function calling and JSON mode</span></div>
+            <div class="tl-entry"><span class="date">August 2024</span> — <span class="ev">Hermes 3: Full Llama-3.1 family (8B, 70B, 405B), published in a formal technical report</span></div>
+            <div class="tl-entry"><span class="date">2025</span> — <span class="ev">Hermes 4: 70B hybrid-mode reasoning model</span></div>
+        </div>
+
+        <p>These are <em>language models</em>. They process text. They do not run autonomously, manage servers, or execute multi-step workflows. <strong>They are not agents.</strong></p>
+
+        <h3>Hermes Agent (The Autonomous Agent Framework)</h3>
+        <p><strong>Hermes Agent</strong> is a fundamentally different product: an open-source autonomous agent framework that lives on your server, connects to messaging platforms (Telegram, Discord, WeChat, iMessage), maintains persistent memory, and improves itself over time. It is not a model. It is <em>agent infrastructure</em>.</p>
+
+        <p><strong>Key dates, all verifiable on-chain or on GitHub:</strong></p>
+
+        <div class="timeline-box">
+            <div class="tl-entry"><span class="date">July 22, 2025</span> — <span class="ev">GitHub repository created</span></div>
+            <div class="tl-entry"><span class="date">Feb 25, 2026</span> — <span class="ev">v0.1.0 public release (Binance, LinkedIn, Nous Research blog)</span></div>
+            <div class="tl-entry"><span class="date">Feb 25, 2026</span> — <span class="ev">First token deployed — J5Dn… (pairCreatedAt: 1772052192000)</span></div>
+            <div class="tl-entry"><span class="date">Apr 13, 2026</span> — <span class="ev">v0.9.0 release</span></div>
+            <div class="tl-entry"><span class="date">Apr 19, 2026</span> — <span class="ev">100K GitHub stars crossed</span></div>
+        </div>
+
+        <p><strong>The critical fact:</strong> Before February 25, 2026, "Hermes Agent" did not exist as a public product. There was nothing for a token to represent.</p>
+    </div>
+
+    <!-- II -->
+    <div class="section">
+        <h2>II. The Complete Token Census: 17 Claimants, 1 Original</h2>
+
+        <p>Using DexScreener's search API, supplemented by direct token lookups, here are <strong>all tokens</strong> claiming the "Hermes Agent" name—sorted by creation date:</p>
+
+        <div class="token-list">
+            <div class="tk-header"><span>#</span><span>Date</span><span>Name</span><span>FDV</span></div>
+            <div class="tk-row"><span>1</span><span class="tk-date">Jan 28 '25</span><span class="tk-name">HermesOS Agent Framework</span><span class="tk-fdv">$2.9K</span></div>
+            <div class="tk-row orig"><span>2</span><span class="tk-date">Feb 25 '26</span><span class="tk-name">◄ HERMES AGENT</span><span class="tk-fdv">$44K</span></div>
+            <div class="tk-row"><span>3</span><span class="tk-date">Mar 9</span><span class="tk-name">hermes-agent</span><span class="tk-fdv">$2.9K</span></div>
+            <div class="tk-row"><span>4</span><span class="tk-date">Mar 9</span><span class="tk-name">Hermes Agent</span><span class="tk-fdv">$3K</span></div>
+            <div class="tk-row"><span>5</span><span class="tk-date">May 2</span><span class="tk-name">Hermes Agent</span><span class="tk-fdv">$3.3K</span></div>
+            <div class="tk-row"><span>6</span><span class="tk-date">May 9</span><span class="tk-name">Hermes Agent</span><span class="tk-fdv">$3.7K</span></div>
+            <div class="tk-row"><span>7</span><span class="tk-date">May 9</span><span class="tk-name">Hermes Agent</span><span class="tk-fdv">$4.7K</span></div>
+            <div class="tk-row"><span>8</span><span class="tk-date">May 9</span><span class="tk-name">hermes-agent</span><span class="tk-fdv">$364K</span></div>
+            <div class="tk-row"><span>9</span><span class="tk-date">May 9</span><span class="tk-name">hermes (claims 2024)</span><span class="tk-fdv">$71K</span></div>
+            <div class="tk-row"><span>10</span><span class="tk-date">May 9</span><span class="tk-name">Hermes Trading Agent</span><span class="tk-fdv">$2.8K</span></div>
+            <div class="tk-row"><span>11</span><span class="tk-date">May 13</span><span class="tk-name">Solana Agent (SOAG)</span><span class="tk-fdv">$4.1K</span></div>
+            <div class="tk-row"><span>12</span><span class="tk-date">May 15</span><span class="tk-name">Charizard Hermes Agent</span><span class="tk-fdv">$3.8K</span></div>
+            <div class="tk-row"><span>13</span><span class="tk-date">May 15</span><span class="tk-name">Hermes Agent</span><span class="tk-fdv">?</span></div>
+            <div class="tk-row"><span>14</span><span class="tk-date">May 15</span><span class="tk-name">hermes-agent</span><span class="tk-fdv">$288K</span></div>
+            <div class="tk-row"><span>15</span><span class="tk-date">May 15</span><span class="tk-name">Hermes Agent</span><span class="tk-fdv">$2.5K</span></div>
+            <div class="tk-row"><span>16</span><span class="tk-date">May 15</span><span class="tk-name">hermes-agent</span><span class="tk-fdv">$2.5K</span></div>
+            <div class="tk-row"><span>17</span><span class="tk-date">May 15</span><span class="tk-name">hermes-agent</span><span class="tk-fdv">$2.5K</span></div>
+        </div>
+
+        <p><strong>13 out of 17 tokens</strong> were created on or after May 9, 2026—<strong>73 days after</strong> the project launched. The clustering corresponds with a surge of attention after Teknium's May 9 tweet encouraging people to "Try Hermes Agent now."</p>
+    </div>
+
+    <!-- III -->
+    <div class="section">
+        <h2>III. Why J5Dn… Is the Original: Five Lines of Evidence</h2>
+
+        <div class="evidence" data-label="Evidence 1: Temporal Proximity">
+            <h3>Temporal Proximity to Launch</h3>
+            <p>The token at <strong>J5Dn…</strong> was created on <strong>February 25, 2026 at 20:43 UTC</strong>—the exact same day Hermes Agent v0.1.0 was publicly released.</p>
+            <p>DexScreener records <code>pairCreatedAt: 1772052192000</code>, converting to this timestamp. The next-earliest "Hermes Agent" token wasn't created until <strong>March 9, 2026</strong>—12 days later.</p>
+            <p>In the memecoin ecosystem, the token deployed on launch day carries a presumption of authenticity. Someone who deploys a token named after a project within hours of that project's public release is closely tracking it. Someone who deploys the same name 73 days later is, by definition, late.</p>
+        </div>
+
+        <div class="evidence" data-label="Evidence 2: Chronological Impossibility">
+            <h3>The "2024" Claim Is Chronologically Impossible</h3>
+            <p>The token at <code>A49fTb…</code> markets itself as "the first Hermes coin," claiming origins in 2024. Its Twitter handle is <code>@firsthermescoin</code> and its website describes itself as "the first Hermes Agent token, rediscovered from the Pump.fun archive."</p>
+            <p><strong>This is provably false.</strong></p>
+            <p>DexScreener records this token's <code>pairCreatedAt</code> as <code>1778353221000</code>—May 9, 2026 at 19:00 UTC. This is not a "rediscovery." The token was created on the same day as 5 other Hermes imitator tokens. <strong>No transaction for this contract address predates May 9, 2026.</strong></p>
+            <p>The claim conflates <em>Hermes LLM models</em> (which did exist in 2024) with <em>Hermes Agent</em> (which did not). This is either a genuine misunderstanding or a deliberate equivocation—exploiting the shared "Hermes" brand name to imply continuity where none exists.</p>
+        </div>
+
+        <div class="evidence" data-label="Evidence 3: GitHub Provenance">
+            <h3>GitHub Provenance Confirms No Pre-Launch Code</h3>
+            <p>The <code>NousResearch/hermes-agent</code> GitHub repository was created on <strong>July 22, 2025</strong>. The repository had zero public commits, zero releases, and zero stars before its v0.1.0 release on February 25, 2026.</p>
+            <p>There is no evidence—no leaked repositories, no archived code, no insider testimonials—suggesting that a functional "Hermes Agent" product existed in any form before 2025. The idea that an insider could have deployed a token in 2024 for a product that wouldn't begin development until mid-2025 <strong>strains credulity past the breaking point</strong>.</p>
+        </div>
+
+        <div class="evidence" data-label="Evidence 4: Market Signals">
+            <h3>Market Cap and Liquidity Signal First-Mover Status</h3>
+            <p>Among all Hermes Agent tokens, <strong>J5Dn…</strong> has the second-highest FDV ($44,111) and second-highest liquidity ($20,797). The only token with higher metrics—<code>D9pj66…</code> at $364K FDV—was created 73 days later, during the speculative surge.</p>
+            <p>Importantly, <strong>J5Dn…</strong> maintains healthy volume ($52,053 in 24h) relative to its liquidity, indicating organic trading activity rather than wash trading. The tokens deployed on May 9 and later show the classic copycat pattern: multiple tokens with the same name, fragmented liquidity, and minimal sustained interest.</p>
+        </div>
+
+        <div class="evidence" data-label="Evidence 5: Social Verification">
+            <h3>The Social Link Points to the X Community</h3>
+            <p>The DexScreener metadata for <strong>J5Dn…</strong> links to the official Hermes Agent X Community. <strong>None of the competing tokens link to official Nous Research channels.</strong> The imitator tokens link to either newly created accounts (like <code>@HermesAgentSol</code> or <code>@firsthermescoin</code>) or to unrelated third-party websites.</p>
+        </div>
+    </div>
+
+    <!-- IV -->
+    <div class="section">
+        <h2>IV. Anatomy of a Copycat: The D9pj… Token</h2>
+        <p>The highest-market-cap imitator, <code>D9pj66…</code>, warrants specific analysis:</p>
+        <ul>
+            <li><strong>Created:</strong> May 9, 2026 at 16:49 UTC (73 days after launch)</li>
+            <li><strong>Social:</strong> Links to <code>@HermesAgentSol</code> and <code>hermes-agent-news.com</code></li>
+            <li><strong>FDV:</strong> $364,057 with $59,068 liquidity</li>
+        </ul>
+        <p>This token's website and social presence were created to capitalize on the attention generated by Teknium's May 9 tweet. The account <code>@HermesAgentSol</code> has <strong>no verified connection to Nous Research</strong>. The website domain was registered recently and contains no substantive content about the project—only token-trading information and marketing language.</p>
+        <p>The 8x higher FDV relative to J5Dn… reflects <em>momentum-driven speculation, not legitimacy</em>. In memecoin markets, late-arriving copycats often outpace originals in short-term market cap because they launch during peak attention windows. This is a well-documented phenomenon, not evidence of authenticity.</p>
+    </div>
+
+    <!-- V -->
+    <div class="section">
+        <h2>V. The Fundamental Logical Test</h2>
+        <p>Forget the on-chain forensics for a moment. Apply simple logic:</p>
+
+        <div class="logic-box">
+            <ol>
+                <li><strong>Hermes Agent did not exist in 2024.</strong> Therefore, no token created in 2024 could represent it.</li>
+                <li><strong>The project launched on February 25, 2026.</strong> A token created on that day is, at minimum, temporally consistent with representing the project.</li>
+                <li><strong>Every token created after February 25, 2026 is, by definition, a latecomer.</strong> The name was already taken. The CA was already deployed. Any subsequent token with the same name is a duplicate by construction.</li>
+            </ol>
+        </div>
+
+        <p>The token at <strong>J5Dn…</strong> is the <em>only</em> Hermes Agent token that satisfies the necessary condition of existing when the product existed. All others fail this test.</p>
+    </div>
+
+    <!-- WIZARD -->
+    <div class="wizard-wrap">
+        <img src="nes_wizard.png" alt="NES Wizard">
+    </div>
+
+    <!-- VI -->
+    <div class="section">
+        <h2>VI. Conclusion</h2>
+
+        <p>The Solana blockchain is permissionless. Anyone can deploy a token named anything. The existence of 17 tokens claiming the "Hermes Agent" name is not a sign of competition—it is a sign of <em>opportunism</em>. The on-chain evidence is clear:</p>
+
+        <ul>
+            <li><strong>One token was deployed on launch day.</strong> It trades, it has liquidity, and it has been active since the project's inception.</li>
+            <li><strong>Thirteen tokens were deployed 73+ days later</strong> during a single attention spike, none with any verifiable connection to Nous Research.</li>
+            <li><strong>One token claims a 2024 origin</strong> that is chronologically impossible, conflating language models with agent software.</li>
+            <li><strong>One token (HermesOS, Jan 2025)</strong> references the broader Hermes brand, predating the Agent project entirely.</li>
+            <li><strong>Three tokens were deployed on the same day</strong> as 12 others, further fragmenting an already-saturated field.</li>
+        </ul>
+
+        <p style="font-size:clamp(1.1rem,3vw,1.4rem);color:var(--cyan);margin-top:28px;line-height:1.6;">The original is not the biggest. It is not the loudest. <strong>It is the one that was there when it mattered—on day one.</strong></p>
+
+        <p style="margin-top:18px;color:var(--dim);font-size:0.82rem;">Data sourced from DexScreener API, Solana RPC (mainnet-beta), GitHub API, and public X/Twitter records. All timestamps UTC. Research conducted May 15–16, 2026.</p>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta">
+        <h2>Buy the Original<br>Hermes Agent</h2>
+        <div class="ca-final" title="Click to copy">J5DnHXXmKsXmCAeSvPRc5qR64ruYKcZHKwZijv9HnZgK</div>
+    </div>
+
+</div>
+
+<footer>
+    <p>© 2026 Hermes Agent — Original Token</p>
+    <p style="margin-top:6px;opacity:0.5;">Built with Nous Research</p>
+</footer>
+
+<script>
+// ── Price bar ──
+const GOAL = 10_000_000;
+const CA = 'J5DnHXXmKsXmCAeSvPRc5qR64ruYKcZHKwZijv9HnZgK';
+
+function updatePriceBar(mcap) {
+    const pct = Math.min((mcap / GOAL) * 100, 100);
+    const fillEl = document.getElementById('price-fill');
+    const valueEl = document.getElementById('price-value');
+    const pctEl = document.getElementById('price-pct');
+    const fillLabelEl = fillEl.querySelector('.price-fill-label');
+
+    if (fillEl) {
+        fillEl.style.width = Math.max(pct, 0.5) + '%';
+    }
+    if (valueEl) {
+        valueEl.textContent = '$' + mcap.toLocaleString('en-US', {maximumFractionDigits: 0});
+    }
+    if (pctEl) {
+        pctEl.textContent = pct.toFixed(2) + '%';
+    }
+    if (fillLabelEl) {
+        fillLabelEl.textContent = mcap >= 1_000_000
+            ? '$' + (mcap / 1_000_000).toFixed(1) + 'M'
+            : '$' + Math.round(mcap / 1000) + 'K';
+    }
+}
+
+// Initial value (hardcoded fallback)
+updatePriceBar(34383);
+
+// Fetch live price from DexScreener
+async function fetchLivePrice() {
+    try {
+        const res = await fetch('https://api.dexscreener.com/latest/dex/tokens/' + CA);
+        const data = await res.json();
+        if (data.pairs && data.pairs.length > 0) {
+            // Use the pair with highest liquidity
+            const best = data.pairs.sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0))[0];
+            const mcap = best.fdv || best.marketCap || 0;
+            if (mcap > 0) updatePriceBar(mcap);
+        }
+    } catch (e) {
+        console.log('Price fetch failed, using cached value');
+    }
+}
+fetchLivePrice();
+setInterval(fetchLivePrice, 60000); // refresh every 60s
+
+// ── Copy CA ──
+document.querySelectorAll('.ca-box, .ca-final').forEach(el => {
+    el.addEventListener('click', () => {
+        const ca = el.textContent.trim();
+        navigator.clipboard.writeText(ca).then(() => {
+            const t = document.getElementById('toast');
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 1600);
+        });
+    });
+});
+
+setInterval(() => {
+    const els = document.querySelectorAll('.evidence, .logic-box, .timeline-box');
+    if (!els.length) return;
+    const el = els[Math.floor(Math.random() * els.length)];
+    el.style.transform = `translate(${(Math.random()-0.5)*3}px, ${(Math.random()-0.5)*2}px)`;
+    el.style.filter = `hue-rotate(${Math.floor(Math.random()*20-10)}deg)`;
+    setTimeout(() => { el.style.transform = ''; el.style.filter = ''; }, 70);
+}, 5000);
+</script>
+
+</body>
+</html>
