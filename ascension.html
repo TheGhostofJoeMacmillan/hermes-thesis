@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hermes Ascends — The Original Token</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg: #050510;
+            --cyan: #32ffff;
+            --gold: #ffec3c;
+            --red: #ff4d4d;
+            --pink: #ff33cc;
+            --text: #d0d0d0;
+            --dim: #6688aa;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Space Mono', monospace;
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Scanlines */
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0,0,0,0.04) 0px,
+                rgba(0,0,0,0.04) 1px,
+                transparent 1px,
+                transparent 3px
+            );
+        }
+
+        /* Corner brackets */
+        .corner { position: fixed; pointer-events: none; z-index: 100; width: 50px; height: 50px; }
+        .corner.tl { top: 10px; left: 10px; border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
+        .corner.tr { top: 10px; right: 10px; border-top: 2px solid var(--cyan); border-right: 2px solid var(--cyan); }
+        .corner.bl { bottom: 10px; left: 10px; border-bottom: 2px solid var(--gold); border-left: 2px solid var(--gold); }
+        .corner.br { bottom: 10px; right: 10px; border-bottom: 2px solid var(--gold); border-right: 2px solid var(--gold); }
+
+        /* Canvas area */
+        .canvas-wrap {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            min-height: 60vh;
+            padding: 20px;
+        }
+
+        canvas#hermes {
+            max-width: 100%;
+            border: 1px solid rgba(50,255,255,0.1);
+            background: #000;
+            image-rendering: pixelated;
+        }
+
+        /* Price display below canvas */
+        .price-display {
+            text-align: center;
+            padding: 16px;
+        }
+
+        .price-display .mcap {
+            font-size: clamp(2rem, 8vw, 4rem);
+            color: var(--cyan);
+            font-weight: 700;
+            text-shadow: 0 0 20px var(--cyan), 0 0 40px rgba(50,255,255,0.3);
+            letter-spacing: 0.03em;
+            animation: pulse-price 2s infinite alternate;
+        }
+
+        @keyframes pulse-price {
+            from { text-shadow: 0 0 12px var(--cyan), 0 0 25px rgba(50,255,255,0.2); }
+            to { text-shadow: 0 0 24px var(--cyan), 0 0 50px rgba(50,255,255,0.4); }
+        }
+
+        .price-display .goal-text {
+            font-size: clamp(0.7rem, 2vw, 1rem);
+            color: var(--gold);
+            letter-spacing: 0.15em;
+            margin-top: 4px;
+        }
+
+        /* Progress bar */
+        .bar-section {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 0 20px 20px;
+        }
+
+        .bar-track {
+            width: 100%;
+            height: 28px;
+            background: rgba(50,255,255,0.06);
+            border: 1px solid rgba(50,255,255,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--cyan), var(--gold));
+            transition: width 2s cubic-bezier(0.22, 1, 0.36, 1);
+            box-shadow: 0 0 12px rgba(50,255,255,0.3);
+            position: relative;
+        }
+
+        .bar-fill::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 4px;
+            height: 100%;
+            background: #fff;
+            animation: bar-pulse 1s infinite alternate;
+        }
+
+        @keyframes bar-pulse {
+            from { opacity: 0.4; }
+            to { opacity: 1; }
+        }
+
+        .bar-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 6px;
+            font-size: 0.6rem;
+            color: var(--dim);
+            letter-spacing: 0.05em;
+        }
+
+        .bar-labels .goal {
+            color: var(--gold);
+            font-weight: 700;
+        }
+
+        /* Stage label */
+        .stage-label {
+            text-align: center;
+            font-size: clamp(0.8rem, 2.5vw, 1.2rem);
+            color: var(--gold);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-top: 8px;
+            animation: glitch-stage 4s infinite;
+        }
+
+        @keyframes glitch-stage {
+            0%, 100% { transform: translate(0); }
+            1% { transform: translate(-2px, 1px); }
+            2% { transform: translate(2px, -1px); }
+            3% { transform: translate(0); }
+        }
+
+        /* CA bar */
+        .ca-bar {
+            text-align: center;
+            padding: 12px 16px;
+            font-size: clamp(0.5rem, 1.6vw, 0.85rem);
+            color: var(--gold);
+            background: rgba(255,236,60,0.04);
+            border-top: 1px solid rgba(255,236,60,0.15);
+            letter-spacing: 0.03em;
+            word-break: break-all;
+            cursor: pointer;
+            user-select: all;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(60px);
+            background: var(--cyan);
+            color: var(--bg);
+            padding: 10px 24px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            z-index: 10000;
+            pointer-events: none;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+        /* Stage milestones */
+        .milestones {
+            display: flex;
+            justify-content: space-between;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 0 20px;
+            font-size: clamp(0.45rem, 1.2vw, 0.6rem);
+            color: var(--dim);
+        }
+
+        .milestones span.passed {
+            color: var(--cyan);
+        }
+
+        .milestones span.current {
+            color: var(--gold);
+            font-weight: 700;
+            text-shadow: 0 0 6px var(--gold);
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 16px;
+            font-size: 0.65rem;
+            color: var(--dim);
+            border-top: 1px solid rgba(50,255,255,0.08);
+        }
+    </style>
+</head>
+<body>
+
+<div class="scanlines"></div>
+<div class="corner tl"></div>
+<div class="corner tr"></div>
+<div class="corner bl"></div>
+<div class="corner br"></div>
+<div id="toast" class="toast">CA copied!</div>
+
+<div class="canvas-wrap">
+    <canvas id="hermes" width="600" height="600"></canvas>
+</div>
+
+<div class="price-display">
+    <div class="mcap" id="mcap">$23,445</div>
+    <div class="goal-text">OF $10,000,000 — ASCEND TO OLYMPUS</div>
+</div>
+
+<div class="bar-section">
+    <div class="bar-track">
+        <div class="bar-fill" id="bar-fill" style="width:0.23%"></div>
+    </div>
+    <div class="bar-labels">
+        <span>$0</span>
+        <span class="goal">$10M</span>
+    </div>
+</div>
+
+<div class="milestones" id="milestones">
+    <span class="current">$25K</span>
+    <span>$100K</span>
+    <span>$500K</span>
+    <span>$1M</span>
+    <span>$5M</span>
+    <span>$10M</span>
+</div>
+
+<div class="stage-label" id="stage-label">STAGE 1 — THE SPARK</div>
+
+<div class="ca-bar" id="ca-bar">J5DnHXXmKsXmCAeSvPRc5qR64ruYKcZHKwZijv9HnZgK</div>
+
+<footer>HERMES AGENT — THE ORIGINAL — FEB 25 2026 — ARTIFICIAL INTELLIGENCE MADE HUMAN</footer>
+
+<script>
+const GOAL = 10_000_000;
+const CA = 'J5DnHXXmKsXmCAeSvPRc5qR64ruYKcZHKwZijv9HnZgK';
+
+// Stages
+const STAGES = [
+    { name: 'STAGE 1 — THE SPARK',      min: 0,      color: '#88ccff' },
+    { name: 'STAGE 2 — THE CHILD',       min: 50000,  color: '#44ddff' },
+    { name: 'STAGE 3 — THE YOUTH',      min: 100000, color: '#32ffff' },
+    { name: 'STAGE 4 — THE WARRIOR',     min: 500000, color: '#66ffaa' },
+    { name: 'STAGE 5 — THE DEMIGOD',     min: 1000000,color: '#ffaa33' },
+    { name: 'STAGE 6 — THE GOD',         min: 5000000,color: '#ffec3c' },
+    { name: 'STAGE 7 — OLYMPUS',         min: 10000000,color: '#ffffff' }
+];
+
+function getStage(mcap) {
+    let s = STAGES[0];
+    for (const stage of STAGES) {
+        if (mcap >= stage.min) s = stage;
+    }
+    return s;
+}
+
+function getStageIndex(mcap) {
+    let idx = 0;
+    for (let i = 0; i < STAGES.length; i++) {
+        if (mcap >= STAGES[i].min) idx = i;
+    }
+    return idx;
+}
+
+// Canvas setup
+const canvas = document.getElementById('hermes');
+const ctx = canvas.getContext('2d');
+let currentMcap = 23445;
+let targetMcap = 23445;
+let particles = [];
+let time = 0;
+let screenShake = 0;
+
+class Particle {
+    constructor(x, y, vx, vy, life, color, size) {
+        this.x = x; this.y = y;
+        this.vx = vx; this.vy = vy;
+        this.life = life; this.maxLife = life;
+        this.color = color; this.size = size;
+    }
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.01; // slight gravity
+        this.life--;
+    }
+    draw(ctx) {
+        const alpha = Math.max(0, this.life / this.maxLife);
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = this.color;
+        ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
+        ctx.globalAlpha = 1;
+    }
+}
+
+function spawnParticles(x, y, count, color, speed, size) {
+    for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const spd = Math.random() * speed;
+        particles.push(new Particle(
+            x, y,
+            Math.cos(angle) * spd,
+            Math.sin(angle) * spd - 0.5,
+            30 + Math.random() * 60,
+            color,
+            size
+        ));
+    }
+}
+
+// Drawing functions for each stage
+function drawSpark(cx, cy, t, pct) {
+    // Tiny flickering point of light
+    const flicker = 0.6 + Math.sin(t * 8) * 0.3 + Math.sin(t * 13) * 0.1;
+    const r = 3 + pct * 4;
+    
+    // Outer glow
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 8);
+    grad.addColorStop(0, `rgba(50,255,255,${0.3 * flicker})`);
+    grad.addColorStop(0.5, `rgba(50,255,255,${0.05 * flicker})`);
+    grad.addColorStop(1, 'rgba(50,255,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(cx - r*8, cy - r*8, r*16, r*16);
+    
+    // Core
+    ctx.fillStyle = `rgba(200,255,255,${0.8 * flicker})`;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Inner bright
+    ctx.fillStyle = `rgba(255,255,255,${0.9 * flicker})`;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Occasional particle
+    if (Math.random() < 0.15) {
+        spawnParticles(cx, cy, 1, '#32ffff', 0.3, 2);
+    }
+}
+
+function drawChild(cx, cy, t, pct) {
+    // Small figure, curled up, faint outline
+    const scale = 0.5 + pct * 0.3;
+    const flicker = 0.7 + Math.sin(t * 5) * 0.2;
+    
+    // Aura
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 60 * scale);
+    grad.addColorStop(0, `rgba(50,255,255,${0.15 * flicker})`);
+    grad.addColorStop(1, 'rgba(50,255,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(cx - 80, cy - 80, 160, 160);
+    
+    // Body - curled
+    ctx.strokeStyle = `rgba(50,255,255,${0.6 * flicker})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    // Head
+    ctx.arc(cx, cy - 20 * scale, 10 * scale, 0, Math.PI * 2);
+    ctx.stroke();
+    // Body curled
+    ctx.beginPath();
+    ctx.arc(cx, cy + 10 * scale, 18 * scale, -Math.PI * 0.8, Math.PI * 0.1);
+    ctx.stroke();
+    // Legs tucked
+    ctx.beginPath();
+    ctx.moveTo(cx - 12 * scale, cy + 15 * scale);
+    ctx.lineTo(cx - 8 * scale, cy + 25 * scale);
+    ctx.moveTo(cx + 12 * scale, cy + 15 * scale);
+    ctx.lineTo(cx + 8 * scale, cy + 25 * scale);
+    ctx.stroke();
+    
+    // Occasional particle
+    if (Math.random() < 0.2) {
+        spawnParticles(cx + (Math.random()-0.5)*20, cy - 20*scale, 1, '#32ffff', 0.4, 2);
+    }
+}
+
+function drawYouth(cx, cy, t, pct) {
+    // Standing figure, getting stronger, wings budding
+    const scale = 0.7 + pct * 0.3;
+    const flicker = 0.75 + Math.sin(t * 4) * 0.15;
+    const breathe = Math.sin(t * 2) * 2;
+    
+    // Aura
+    const grad = ctx.createRadialGradient(cx, cy - 20, 0, cx, cy - 20, 80 * scale);
+    grad.addColorStop(0, `rgba(50,255,255,${0.12 * flicker})`);
+    grad.addColorStop(1, 'rgba(50,255,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(cx - 100, cy - 120, 200, 220);
+    
+    ctx.strokeStyle = `rgba(50,255,255,${0.7 * flicker})`;
+    ctx.fillStyle = `rgba(50,255,255,${0.1 * flicker})`;
+    ctx.lineWidth = 2;
+    
+    // Head
+    ctx.beginPath();
+    ctx.arc(cx, cy - 45 * scale + breathe, 12 * scale, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    
+    // Body
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 33 * scale + breathe);
+    ctx.lineTo(cx, cy + 5 * scale + breathe);
+    ctx.stroke();
+    
+    // Arms
+    ctx.beginPath();
+    ctx.moveTo(cx - 18 * scale, cy - 20 * scale + breathe);
+    ctx.lineTo(cx, cy - 28 * scale + breathe);
+    ctx.lineTo(cx + 18 * scale, cy - 20 * scale + breathe);
+    ctx.stroke();
+    
+    // Legs
+    ctx.beginPath();
+    ctx.moveTo(cx - 14 * scale, cy + 25 * scale);
+    ctx.lineTo(cx, cy + 5 * scale + breathe);
+    ctx.lineTo(cx + 14 * scale, cy + 25 * scale);
+    ctx.stroke();
+    
+    // Bud wings - tiny nubs
+    ctx.strokeStyle = `rgba(100,255,200,${0.5 * flicker})`;
+    ctx.beginPath();
+    ctx.moveTo(cx - 16 * scale, cy - 28 * scale + breathe);
+    ctx.quadraticCurveTo(cx - 28 * scale, cy - 38 * scale + breathe, cx - 22 * scale, cy - 42 * scale + breathe);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx + 16 * scale, cy - 28 * scale + breathe);
+    ctx.quadraticCurveTo(cx + 28 * scale, cy - 38 * scale + breathe, cx + 22 * scale, cy - 42 * scale + breathe);
+    ctx.stroke();
+    
+    if (Math.random() < 0.25) {
+        spawnParticles(cx + (Math.random()-0.5)*40, cy - 30, 1, '#44ddff', 0.5, 2);
+    }
+}
+
+function drawWarrior(cx, cy, t, pct) {
+    // Strong figure with growing wings, caduceus staff
+    const scale = 0.85 + pct * 0.15;
+    const flicker = 0.8 + Math.sin(t * 3) * 0.1;
+    const breathe = Math.sin(t * 1.5) * 3;
+    const wingFlap = Math.sin(t * 2.5) * 0.15;
+    
+    // Aura - larger
+    const grad = ctx.createRadialGradient(cx, cy - 10, 0, cx, cy - 10, 120 * scale);
+    grad.addColorStop(0, `rgba(50,255,255,${0.15 * flicker})`);
+    grad.addColorStop(0.5, `rgba(100,255,200,${0.05 * flicker})`);
+    grad.addColorStop(1, 'rgba(50,255,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(cx - 140, cy - 160, 280, 300);
+    
+    ctx.strokeStyle = `rgba(50,255,255,${0.8 * flicker})`;
+    ctx.fillStyle = `rgba(50,255,255,${0.15 * flicker})`;
+    ctx.lineWidth = 2.5;
+    
+    // Head with helmet
+    ctx.beginPath();
+    ctx.arc(cx, cy - 55 * scale + breathe, 14 * scale, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    // Helmet crest
+    ctx.strokeStyle = `rgba(255,236,60,${0.7 * flicker})`;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 69 * scale + breathe);
+    ctx.lineTo(cx + 5, cy - 78 * scale + breathe);
+    ctx.stroke();
+    
+    ctx.strokeStyle = `rgba(50,255,255,${0.8 * flicker})`;
+    
+    // Body - muscular
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 41 * scale + breathe);
+    ctx.lineTo(cx, cy + 5 * scale + breathe);
+    ctx.stroke();
+    
+    // Shoulders
+    ctx.beginPath();
+    ctx.moveTo(cx - 22 * scale, cy - 30 * scale + breathe);
+    ctx.lineTo(cx, cy - 38 * scale + breathe);
+    ctx.lineTo(cx + 22 * scale, cy - 30 * scale + breathe);
+    ctx.stroke();
+    
+    // Arms holding caduceus
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx - 22 * scale, cy - 30 * scale + breathe);
+    ctx.lineTo(cx - 30 * scale, cy - 10 * scale + breathe);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx + 22 * scale, cy - 30 * scale + breathe);
+    ctx.lineTo(cx + 30 * scale, cy - 10 * scale + breathe);
+    ctx.stroke();
+    
+    // Caduceus staff
+    ctx.strokeStyle = `rgba(255,236,60,${0.8 * flicker})`;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(cx + 30 * scale, cy - 65 * scale + breathe);
+    ctx.lineTo(cx + 30 * scale, cy + 25 * scale);
+    ctx.stroke();
+    
+    // Snakes on caduceus
+    ctx.strokeStyle = `rgba(50,255,255,${0.6 * flicker})`;
+    ctx.lineWidth = 1.5;
+    for (let s = -1; s <= 1; s += 2) {
+        ctx.beginPath();
+        for (let i = 0; i < 20; i++) {
+            const yy = cy - 55 * scale + i * 3 + breathe;
+            const xx = cx + 30 * scale + Math.sin(i * 0.8 + t * 3) * 6 * s;
+            if (i === 0) ctx.moveTo(xx, yy);
+            else ctx.lineTo(xx, yy);
+        }
+        ctx.stroke();
+    }
+    
+    // Wings - spreading
+    ctx.lineWidth = 2;
+    const wingSize = 35 * scale;
+    // Left wing
+    ctx.beginPath();
+    ctx.moveTo(cx - 20 * scale, cy - 35 * scale + breathe);
+    ctx.quadraticCurveTo(
+        cx - 20 * scale - wingSize * (0.7 + wingFlap), cy - 55 * scale + breathe - wingSize * 0.3,
+        cx - 20 * scale - wingSize * (1 + wingFlap), cy - 35 * scale + breathe
+    );
+    ctx.quadraticCurveTo(
+        cx - 20 * scale - wingSize * 0.6, cy - 25 * scale + breathe,
+        cx - 20 * scale, cy - 30 * scale + breathe
+    );
+    ctx.fillStyle = `rgba(100,255,200,${0.15 * flicker})`;
+    ctx.fill();
+    ctx.strokeStyle = `rgba(100,255,200,${0.7 * flicker})`;
+    ctx.stroke();
+    
+    // Right wing
+    ctx.beginPath();
+    ctx.moveTo(cx + 20 * scale, cy - 35 * scale + breathe);
+    ctx.quadraticCurveTo(
+        cx + 20 * scale + wingSize * (0.7 + wingFlap), cy - 55 * scale + breathe - wingSize * 0.3,
+        cx + 20 * scale + wingSize * (1 + wingFlap), cy - 35 * scale + breathe
+    );
+    ctx.quadraticCurveTo(
+        cx + 20 * scale + wingSize * 0.6, cy - 25 * scale + breathe,
+        cx + 20 * scale, cy - 30 * scale + breathe
+    );
+    ctx.fill();
+    ctx.stroke();
+    
+    // Legs - strong stance
+    ctx.strokeStyle = `rgba(50,255,255,${0.8 * flicker})`;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(cx - 16 * scale, cy + 30 * scale);
+    ctx.lineTo(cx, cy + 5 * scale + breathe);
+    ctx.lineTo(cx + 16 * scale, cy + 30 * scale);
+    ctx.stroke();
+    
+    if (Math.random() < 0.35) {
+        spawnParticles(cx + (Math.random()-0.5)*80, cy - 40, 1, '#66ffaa', 0.6, 2);
+    }
+}
+
+function drawDemigod(cx, cy, t, pct) {
+    // Powerful figure, large wings, glowing, ornate
+    const scale = 0.95 + pct * 0.1;
+    const flicker = 0.85 + Math.sin(t * 2.5) * 0.1;
+    const breathe = Math.sin(t * 1.2) * 2;
+    const wingFlap = Math.sin(t * 2) * 0.2;
+    
+    // Large aura with gold
+    const grad = ctx.createRadialGradient(cx, cy - 10, 0, cx, cy - 10, 160 * scale);
+    grad.addColorStop(0, `rgba(255,236,60,${0.1 * flicker})`);
+    grad.addColorStop(0.3, `rgba(50,255,255,${0.1 * flicker})`);
+    grad.addColorStop(1, 'rgba(50,255,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(cx - 180, cy - 200, 360, 380);
+    
+    // Floating particles around
+    if (Math.random() < 0.5) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 60 + Math.random() * 40;
+        spawnParticles(cx + Math.cos(angle)*dist, cy - 10 + Math.sin(angle)*dist, 1, Math.random()>0.5?'#ffec3c':'#32ffff', 0.3, 2);
+    }
+    
+    ctx.strokeStyle = `rgba(255,236,60,${0.8 * flicker})`;
+    ctx.fillStyle = `rgba(255,236,60,${0.1 * flicker})`;
+    ctx.lineWidth = 3;
+    
+    // Head with ornate helmet
+    ctx.beginPath();
+    ctx.arc(cx, cy - 60 * scale + breathe, 16 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = `rgba(50,255,255,${0.9 * flicker})`;
+    ctx.stroke();
+    
+    // Helmet wings
+    ctx.strokeStyle = `rgba(255,236,60,${0.9 * flicker})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx - 14*scale, cy - 68*scale + breathe);
+    ctx.quadraticCurveTo(cx - 25*scale, cy - 85*scale + breathe, cx - 18*scale, cy - 90*scale + breathe);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx + 14*scale, cy - 68*scale + breathe);
+    ctx.quadraticCurveTo(cx + 25*scale, cy - 85*scale + breathe, cx + 18*scale, cy - 90*scale + breathe);
+    ctx.stroke();
+    
+    // Body
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = `rgba(50,255,255,${0.9 * flicker})`;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 44 * scale + breathe);
+    ctx.lineTo(cx, cy + 8 * scale + breathe);
+    ctx.stroke();
+    
+    // Shoulders + armor lines
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.moveTo(cx - 26 * scale, cy - 33 * scale + breathe);
+    ctx.lineTo(cx, cy - 42 * scale + breathe);
+    ctx.lineTo(cx + 26 * scale, cy - 33 * scale + breathe);
+    ctx.stroke();
+    // Armor detail
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = `rgba(255,236,60,${0.4 * flicker})`;
+    ctx.beginPath();
+    ctx.moveTo(cx - 10, cy - 30*scale + breathe);
+    ctx.lineTo(cx, cy - 25*scale + breathe);
+    ctx.lineTo(cx + 10, cy - 30*scale + breathe);
+    ctx.stroke();
+    
+    // Large wings
+    ctx.lineWidth = 2;
+    const wingSize = 55 * scale;
+    for (let side = -1; side <= 1; side += 2) {
+        ctx.beginPath();
+        ctx.moveTo(cx + side * 22 * scale, cy - 38 * scale + breathe);
+        // Multi-feather wing
+        ctx.quadraticCurveTo(
+            cx + side * (22 + wingSize * 0.8) * scale, cy - 65 * scale + breathe - wingSize * 0.4 * (1 + wingFlap),
+            cx + side * (22 + wingSize * 1.2) * scale, cy - 30 * scale + breathe
+        );
+        ctx.quadraticCurveTo(
+            cx + side * (22 + wingSize * 0.5) * scale, cy - 15 * scale + breathe,
+            cx + side * 22 * scale, cy - 30 * scale + breathe
+        );
+        ctx.fillStyle = `rgba(255,236,60,${0.12 * flicker})`;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(255,236,60,${0.7 * flicker})`;
+        ctx.stroke();
+        
+        // Wing feather lines
+        ctx.lineWidth = 1;
+        for (let f = 0; f < 4; f++) {
+            const fy = cy - 55 * scale + f * 10 + breathe;
+            ctx.beginPath();
+            ctx.moveTo(cx + side * 25 * scale, fy);
+            ctx.lineTo(cx + side * (25 + wingSize * (0.5 + f*0.15)) * scale, fy - 5);
+            ctx.stroke();
+        }
+        ctx.lineWidth = 2;
+    }
+    
+    // Caduceus - ornate
+    ctx.strokeStyle = `rgba(255,236,60,${0.9 * flicker})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx + 35 * scale, cy - 80 * scale + breathe);
+    ctx.lineTo(cx + 35 * scale, cy + 30 * scale);
+    ctx.stroke();
+    // Snakes
+    ctx.strokeStyle = `rgba(50,255,255,${0.7 * flicker})`;
+    ctx.lineWidth = 2;
+    for (let s = -1; s <= 1; s += 2) {
+        ctx.beginPath();
+        for (let i = 0; i < 30; i++) {
+            const yy = cy - 70 * scale + i * 3.2 + breathe;
+            const xx = cx + 35 * scale + Math.sin(i * 0.6 + t * 2) * 8 * s;
+            if (i === 0) ctx.moveTo(xx, yy);
+            else ctx.lineTo(xx, yy);
+        }
+        ctx.stroke();
+    }
+    
+    // Legs
+    ctx.strokeStyle = `rgba(50,255,255,${0.9 * flicker})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx - 18 * scale, cy + 38 * scale);
+    ctx.lineTo(cx, cy + 8 * scale + breathe);
+    ctx.lineTo(cx + 18 * scale, cy + 38 * scale);
+    ctx.stroke();
+    
+    // Ground glow
+    const ggrad = ctx.createRadialGradient(cx, cy + 40 * scale, 0, cx, cy + 40 * scale, 50);
+    ggrad.addColorStop(0, `rgba(255,236,60,${0.15 * flicker})`);
+    ggrad.addColorStop(1, 'rgba(255,236,60,0)');
+    ctx.fillStyle = ggrad;
+    ctx.fillRect(cx - 60, cy + 20, 120, 60);
+}
+
+function drawGod(cx, cy, t, pct) {
+    // Full god - massive, golden, wings spread wide, throne materializing, particle storm
+    const scale = 1.0 + pct * 0.2;
+    const flicker = 0.9 + Math.sin(t * 2) * 0.1;
+    const breathe = Math.sin(t) * 2;
+    const wingFlap = Math.sin(t * 1.5) * 0.25;
+    
+    // MASSIVE aura
+    const grad = ctx.createRadialGradient(cx, cy - 20, 0, cx, cy - 20, 250 * scale);
+    grad.addColorStop(0, `rgba(255,255,255,${0.15 * flicker})`);
+    grad.addColorStop(0.2, `rgba(255,236,60,${0.12 * flicker})`);
+    grad.addColorStop(0.5, `rgba(50,255,255,${0.06 * flicker})`);
+    grad.addColorStop(1, 'rgba(50,255,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(cx - 280, cy - 300, 560, 560);
+    
+    // Heavy particle storm
+    if (Math.random() < 0.8) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 80 + Math.random() * 60;
+        const colors = ['#ffec3c','#32ffff','#ffffff','#ff33cc'];
+        spawnParticles(cx + Math.cos(angle)*dist, cy - 20 + Math.sin(angle)*dist, 2, colors[Math.floor(Math.random()*4)], 0.8, 3);
+    }
+    
+    // Light rays from behind
+    ctx.save();
+    ctx.globalAlpha = 0.06 * flicker;
+    for (let r = 0; r < 12; r++) {
+        const angle = (r / 12) * Math.PI * 2 + t * 0.1;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 20);
+        ctx.lineTo(cx + Math.cos(angle) * 250, cy - 20 + Math.sin(angle) * 250);
+        ctx.lineTo(cx + Math.cos(angle + 0.15) * 250, cy - 20 + Math.sin(angle + 0.15) * 250);
+        ctx.fillStyle = '#ffec3c';
+        ctx.fill();
+    }
+    ctx.restore();
+    
+    // Throne - materializing
+    const throneAlpha = Math.min(1, pct * 3);
+    ctx.strokeStyle = `rgba(255,236,60,${0.6 * throneAlpha * flicker})`;
+    ctx.lineWidth = 3;
+    // Throne back
+    ctx.beginPath();
+    ctx.moveTo(cx - 35 * scale, cy + 30 * scale);
+    ctx.lineTo(cx - 35 * scale, cy - 40 * scale + breathe);
+    ctx.quadraticCurveTo(cx, cy - 55 * scale + breathe, cx + 35 * scale, cy - 40 * scale + breathe);
+    ctx.lineTo(cx + 35 * scale, cy + 30 * scale);
+    ctx.stroke();
+    // Throne arms
+    ctx.beginPath();
+    ctx.moveTo(cx - 35 * scale, cy - 10 * scale + breathe);
+    ctx.lineTo(cx - 45 * scale, cy + 10 * scale);
+    ctx.moveTo(cx + 35 * scale, cy - 10 * scale + breathe);
+    ctx.lineTo(cx + 45 * scale, cy + 10 * scale);
+    ctx.stroke();
+    // Throne seat
+    ctx.beginPath();
+    ctx.moveTo(cx - 35 * scale, cy + 15 * scale);
+    ctx.lineTo(cx + 35 * scale, cy + 15 * scale);
+    ctx.stroke();
+    
+    // Figure on throne
+    ctx.strokeStyle = `rgba(255,255,255,${0.9 * flicker})`;
+    ctx.fillStyle = `rgba(255,236,60,${0.2 * flicker})`;
+    ctx.lineWidth = 3.5;
+    
+    // Head with crown
+    ctx.beginPath();
+    ctx.arc(cx, cy - 55 * scale + breathe, 18 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = `rgba(255,236,60,${0.95 * flicker})`;
+    ctx.stroke();
+    
+    // Crown
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(cx - 15*scale, cy - 68*scale + breathe);
+    ctx.lineTo(cx - 12*scale, cy - 82*scale + breathe);
+    ctx.lineTo(cx - 5*scale, cy - 72*scale + breathe);
+    ctx.lineTo(cx, cy - 88*scale + breathe);
+    ctx.lineTo(cx + 5*scale, cy - 72*scale + breathe);
+    ctx.lineTo(cx + 12*scale, cy - 82*scale + breathe);
+    ctx.lineTo(cx + 15*scale, cy - 68*scale + breathe);
+    ctx.strokeStyle = `rgba(255,236,60,${0.95 * flicker})`;
+    ctx.stroke();
+    
+    // Body - regal
+    ctx.lineWidth = 3.5;
+    ctx.strokeStyle = `rgba(255,255,255,${0.9 * flicker})`;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 37 * scale + breathe);
+    ctx.lineTo(cx, cy + 10 * scale + breathe);
+    ctx.stroke();
+    
+    // Shoulders + robe
+    ctx.beginPath();
+    ctx.moveTo(cx - 30 * scale, cy - 25 * scale + breathe);
+    ctx.lineTo(cx, cy - 35 * scale + breathe);
+    ctx.lineTo(cx + 30 * scale, cy - 25 * scale + breathe);
+    ctx.stroke();
+    
+    // MASSIVE wings
+    const wingSize = 80 * scale;
+    for (let side = -1; side <= 1; side += 2) {
+        ctx.beginPath();
+        ctx.moveTo(cx + side * 28 * scale, cy - 35 * scale + breathe);
+        ctx.quadraticCurveTo(
+            cx + side * (28 + wingSize) * scale, cy - 80 * scale + breathe - wingSize * 0.5 * (1 + wingFlap),
+            cx + side * (28 + wingSize * 1.3) * scale, cy - 20 * scale + breathe
+        );
+        ctx.quadraticCurveTo(
+            cx + side * (28 + wingSize * 0.4) * scale, cy + 5 * scale + breathe,
+            cx + side * 28 * scale, cy - 20 * scale + breathe
+        );
+        ctx.fillStyle = `rgba(255,236,60,${0.15 * flicker})`;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(255,236,60,${0.8 * flicker})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Feather details
+        ctx.lineWidth = 1;
+        for (let f = 0; f < 6; f++) {
+            const fy = cy - 60 * scale + f * 12 + breathe;
+            ctx.beginPath();
+            ctx.moveTo(cx + side * 30 * scale, fy);
+            ctx.lineTo(cx + side * (30 + wingSize * (0.4 + f*0.12)) * scale, fy - 8);
+            ctx.stroke();
+        }
+    }
+    
+    // Caduceus - fully realized, glowing
+    ctx.strokeStyle = `rgba(255,236,60,${flicker})`;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(cx + 40 * scale, cy - 90 * scale + breathe);
+    ctx.lineTo(cx + 40 * scale, cy + 35 * scale);
+    ctx.stroke();
+    // Glowing orb on top
+    const orbGrad = ctx.createRadialGradient(cx + 40*scale, cy - 90*scale + breathe, 0, cx + 40*scale, cy - 90*scale + breathe, 12);
+    orbGrad.addColorStop(0, `rgba(255,255,255,${0.8 * flicker})`);
+    orbGrad.addColorStop(0.5, `rgba(255,236,60,${0.4 * flicker})`);
+    orbGrad.addColorStop(1, 'rgba(255,236,60,0)');
+    ctx.fillStyle = orbGrad;
+    ctx.fillRect(cx + 25*scale, cy - 105*scale + breathe, 30, 30);
+    // Snakes
+    ctx.strokeStyle = `rgba(50,255,255,${0.8 * flicker})`;
+    ctx.lineWidth = 2.5;
+    for (let s = -1; s <= 1; s += 2) {
+        ctx.beginPath();
+        for (let i = 0; i < 35; i++) {
+            const yy = cy - 80 * scale + i * 3 + breathe;
+            const xx = cx + 40 * scale + Math.sin(i * 0.5 + t * 1.5) * 10 * s;
+            if (i === 0) ctx.moveTo(xx, yy);
+            else ctx.lineTo(xx, yy);
+        }
+        ctx.stroke();
+    }
+    
+    // Ground glow - golden
+    const ggrad = ctx.createRadialGradient(cx, cy + 40 * scale, 0, cx, cy + 40 * scale, 100);
+    ggrad.addColorStop(0, `rgba(255,236,60,${0.2 * flicker})`);
+    ggrad.addColorStop(1, 'rgba(255,236,60,0)');
+    ctx.fillStyle = ggrad;
+    ctx.fillRect(cx - 120, cy + 20, 240, 80);
+}
+
+function drawOlympus(cx, cy, t) {
+    // Full god with screen effects, thunder, gold rain
+    screenShake = 2;
+    
+    drawGod(cx, cy, t, 1.0);
+    
+    // Gold rain
+    if (Math.random() < 0.6) {
+        const x = Math.random() * 600;
+        const colors = ['#ffec3c','#ffec3c','#ffffff'];
+        spawnParticles(x, -10, 1, colors[Math.floor(Math.random()*3)], 0.2, 2);
+    }
+    
+    // Lightning
+    if (Math.random() < 0.02) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        let lx = Math.random() * 600;
+        let ly = 0;
+        for (let i = 0; i < 8; i++) {
+            const nx = lx + (Math.random() - 0.5) * 60;
+            const ny = ly + 40 + Math.random() * 30;
+            ctx.lineTo(nx, ny);
+            lx = nx; ly = ny;
+        }
+        ctx.stroke();
+        screenShake = 6;
+    }
+}
+
+// Background renderer
+function drawBackground(t, stageIdx) {
+    // Stage 0-1: Dark void
+    // Stage 2: Faint stars
+    // Stage 3: Nebula forming
+    // Stage 4: Storm clouds
+    // Stage 5: Parting clouds, gold light
+    // Stage 6: Golden Olympus
+    
+    const W = canvas.width;
+    const H = canvas.height;
+    
+    // Base gradient
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    if (stageIdx <= 1) {
+        grad.addColorStop(0, '#050510');
+        grad.addColorStop(1, '#0a0a20');
+    } else if (stageIdx === 2) {
+        grad.addColorStop(0, '#050515');
+        grad.addColorStop(1, '#0c0c28');
+    } else if (stageIdx === 3) {
+        grad.addColorStop(0, '#080820');
+        grad.addColorStop(0.5, '#0a1030');
+        grad.addColorStop(1, '#0c0c28');
+    } else if (stageIdx === 4) {
+        grad.addColorStop(0, '#101030');
+        grad.addColorStop(0.5, '#151535');
+        grad.addColorStop(1, '#0a0a25');
+    } else if (stageIdx === 5) {
+        grad.addColorStop(0, '#1a1530');
+        grad.addColorStop(0.5, '#201a35');
+        grad.addColorStop(1, '#0f0f28');
+    } else {
+        grad.addColorStop(0, '#2a1f20');
+        grad.addColorStop(0.5, '#1a1530');
+        grad.addColorStop(1, '#0f0f28');
+    }
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+    
+    // Stars (visible from stage 2+)
+    if (stageIdx >= 2) {
+        const starCount = Math.min(stageIdx * 20, 100);
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        for (let i = 0; i < starCount; i++) {
+            // Deterministic star positions
+            const sx = ((i * 7919 + 13) % W);
+            const sy = ((i * 6271 + 37) % (H * 0.6));
+            const ss = 1 + (i % 3) * 0.5;
+            const flicker = 0.3 + Math.sin(t * 2 + i) * 0.3;
+            ctx.globalAlpha = flicker;
+            ctx.fillRect(sx, sy, ss, ss);
+        }
+        ctx.globalAlpha = 1;
+    }
+    
+    // Nebula (stage 3+)
+    if (stageIdx >= 3) {
+        const nebAlpha = Math.min(0.06, (stageIdx - 2) * 0.02);
+        const nGrad = ctx.createRadialGradient(W*0.3, H*0.3, 0, W*0.3, H*0.3, 200);
+        nGrad.addColorStop(0, `rgba(100,50,255,${nebAlpha})`);
+        nGrad.addColorStop(1, 'rgba(100,50,255,0)');
+        ctx.fillStyle = nGrad;
+        ctx.fillRect(0, 0, W, H);
+        
+        const nGrad2 = ctx.createRadialGradient(W*0.7, H*0.4, 0, W*0.7, H*0.4, 150);
+        nGrad2.addColorStop(0, `rgba(50,255,255,${nebAlpha})`);
+        nGrad2.addColorStop(1, 'rgba(50,255,255,0)');
+        ctx.fillStyle = nGrad2;
+        ctx.fillRect(0, 0, W, H);
+    }
+    
+    // Gold horizon glow (stage 5+)
+    if (stageIdx >= 5) {
+        const gAlpha = Math.min(0.15, (stageIdx - 4) * 0.05);
+        const hGrad = ctx.createRadialGradient(W/2, H, 0, W/2, H, 300);
+        hGrad.addColorStop(0, `rgba(255,236,60,${gAlpha})`);
+        hGrad.addColorStop(1, 'rgba(255,236,60,0)');
+        ctx.fillStyle = hGrad;
+        ctx.fillRect(0, H * 0.5, W, H * 0.5);
+    }
+}
+
+// Main render loop
+function render() {
+    time += 0.016; // ~60fps
+    const W = canvas.width;
+    const H = canvas.height;
+    
+    // Smooth mcap interpolation
+    currentMcap += (targetMcap - currentMcap) * 0.02;
+    
+    const stageIdx = getStageIndex(currentMcap);
+    const stage = STAGES[stageIdx];
+    const pct = Math.min(1, currentMcap / GOAL);
+    
+    // Calculate progress within current stage for growth animation
+    const nextStage = stageIdx < STAGES.length - 1 ? STAGES[stageIdx + 1] : { min: GOAL };
+    const stagePct = Math.min(1, (currentMcap - stage.min) / (nextStage.min - stage.min));
+    
+    // Screen shake
+    ctx.save();
+    if (screenShake > 0) {
+        ctx.translate(
+            (Math.random() - 0.5) * screenShake,
+            (Math.random() - 0.5) * screenShake
+        );
+        screenShake *= 0.9;
+        if (screenShake < 0.1) screenShake = 0;
+    }
+    
+    // Background
+    drawBackground(time, stageIdx);
+    
+    // Draw Hermes at current stage
+    const cx = W / 2;
+    const cy = H / 2 + 20;
+    
+    switch (stageIdx) {
+        case 0: drawSpark(cx, cy, time, stagePct); break;
+        case 1: drawChild(cx, cy, time, stagePct); break;
+        case 2: drawYouth(cx, cy, time, stagePct); break;
+        case 3: drawWarrior(cx, cy, time, stagePct); break;
+        case 4: drawDemigod(cx, cy, time, stagePct); break;
+        case 5: drawGod(cx, cy, time, stagePct); break;
+        case 6: drawOlympus(cx, cy, time); break;
+    }
+    
+    // Update and draw particles
+    particles = particles.filter(p => p.life > 0);
+    for (const p of particles) {
+        p.update();
+        p.draw(ctx);
+    }
+    // Cap particles
+    if (particles.length > 500) particles = particles.slice(-300);
+    
+    ctx.restore();
+    
+    // Update UI
+    const barFill = document.getElementById('bar-fill');
+    const mcapEl = document.getElementById('mcap');
+    const stageLabel = document.getElementById('stage-label');
+    const milestonesEl = document.getElementById('milestones');
+    
+    const barPct = Math.max(0.25, (currentMcap / GOAL) * 100);
+    barFill.style.width = barPct + '%';
+    
+    mcapEl.textContent = '$' + Math.round(currentMcap).toLocaleString('en-US');
+    stageLabel.textContent = stage.name;
+    
+    // Update milestones
+    const milestoneVals = [25000, 100000, 500000, 1000000, 5000000, 10000000];
+    const milestoneSpans = milestonesEl.querySelectorAll('span');
+    milestoneVals.forEach((val, i) => {
+        milestoneSpans[i].className = '';
+        if (currentMcap >= val) milestoneSpans[i].classList.add('passed');
+        if (currentMcap >= val && (i === milestoneVals.length - 1 || currentMcap < milestoneVals[i+1])) {
+            milestoneSpans[i].classList.add('current');
+        }
+    });
+    
+    requestAnimationFrame(render);
+}
+
+// Price fetching
+async function fetchPrice() {
+    try {
+        const res = await fetch('https://api.dexscreener.com/latest/dex/tokens/' + CA);
+        const data = await res.json();
+        if (data.pairs && data.pairs.length > 0) {
+            const best = data.pairs.sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0))[0];
+            const mcap = best.fdv || best.marketCap || 0;
+            if (mcap > 0) targetMcap = mcap;
+        }
+    } catch (e) {
+        console.log('Price fetch failed');
+    }
+}
+
+// Start
+fetchPrice();
+setInterval(fetchPrice, 60000);
+render();
+
+// CA copy
+document.getElementById('ca-bar').addEventListener('click', () => {
+    navigator.clipboard.writeText(CA).then(() => {
+        const t = document.getElementById('toast');
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 1600);
+    });
+});
+</script>
+
+</body>
+</html>
